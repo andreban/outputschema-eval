@@ -1,0 +1,320 @@
+[
+  {
+    "name": "Disambiguate Tax Exemption Certificate ID (Corporate Policy vs User Preferences/Loyalty)",
+    "category": "single_turn_disambiguation",
+    "description": "Tests whether the agent selects get_corporate_policy when asked for the sales tax exemption certificate ID on file, declared in get_corporate_policy.outputSchema.tax_exempt_cert_id.",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "What is the sales tax exemption certificate ID on file for my account?"
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_corporate_policy",
+        "arguments": {},
+        "mockOutput": {
+          "cost_center_code": "CC-ENG-402",
+          "max_flight_fare_usd": 650,
+          "approved_cabin_class": "economy",
+          "preferred_airline_iata": "UA",
+          "max_hotel_nightly_usd": 280,
+          "daily_per_diem_usd": 75,
+          "hardware_stipend_usd": 1200,
+          "tax_exempt_cert_id": "TX-EXEMPT-CA-9081",
+          "approver_manager_email": "skinner@example.com",
+          "require_refundable_ticket": true,
+          "advance_booking_days_min": 7
+        }
+      }
+    ]
+  },
+  {
+    "name": "Disambiguate Saved Home Airport Lookup (Loyalty Benefits vs User Preferences)",
+    "category": "single_turn_disambiguation",
+    "description": "Tests whether the agent selects get_loyalty_benefits when asked for the user's saved home departure airport code, which is one of 12 fields in get_loyalty_benefits.outputSchema rather than get_user_preferences.",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "What 3-letter home airport code do I have saved on my account?"
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_loyalty_benefits",
+        "arguments": {},
+        "mockOutput": {
+          "membership_tier": "Titanium",
+          "points_balance": 84500,
+          "home_airport_iata": "SFO",
+          "preferred_seat_type": "aisle",
+          "companion_voucher_code": "COMP-2026-99A",
+          "lounge_pass_code": "LNG-TITAN-77",
+          "free_checked_bags": 2,
+          "priority_boarding_group": "Group 1",
+          "annual_travel_credit_usd": 300,
+          "free_return_shipping": true,
+          "extended_warranty_months": 12,
+          "concierge_phone_ext": "8800",
+          "tier_expiration_date": "2027-03-31"
+        }
+      }
+    ]
+  },
+  {
+    "name": "Chain: Search Flights to NYC from Usual Location (get_loyalty_benefits -> search_flights)",
+    "category": "multi_step_chaining",
+    "description": "User asks to travel to NYC (JFK) from their usual location. outputSchema reveals that home_airport_iata is returned by get_loyalty_benefits (not get_user_preferences).",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I want to travel to NYC (JFK) on 2026-11-20 from my usual location. What flights are available?"
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_loyalty_benefits",
+        "arguments": {},
+        "mockOutput": {
+          "membership_tier": "Titanium",
+          "points_balance": 84500,
+          "home_airport_iata": "SFO",
+          "preferred_seat_type": "aisle",
+          "companion_voucher_code": "COMP-2026-99A",
+          "lounge_pass_code": "LNG-TITAN-77",
+          "free_checked_bags": 2,
+          "priority_boarding_group": "Group 1",
+          "annual_travel_credit_usd": 300,
+          "free_return_shipping": true,
+          "extended_warranty_months": 12,
+          "concierge_phone_ext": "8800",
+          "tier_expiration_date": "2027-03-31"
+        }
+      },
+      {
+        "functionName": "search_flights",
+        "arguments": {
+          "origin_iata": "SFO",
+          "destination_iata": "JFK",
+          "departure_date": "2026-11-20"
+        },
+        "mockOutput": {
+          "flights": [
+            {
+              "flight_number": "UA-882",
+              "origin_iata": "SFO",
+              "destination_iata": "JFK",
+              "departure_time_iso": "2026-11-20T08:30:00-08:00",
+              "fare_usd": 420,
+              "cabin_class": "economy"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Chain: Search Flights from NYC to Usual Location (get_loyalty_benefits -> search_flights)",
+    "category": "multi_step_chaining",
+    "description": "User asks to travel from NYC (JFK) back to their usual location on 2026-11-25, resolving destination_iata from get_loyalty_benefits.outputSchema.home_airport_iata.",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I want to travel from NYC (JFK) to my usual location on 2026-11-25. What flights are available?"
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_loyalty_benefits",
+        "arguments": {},
+        "mockOutput": {
+          "membership_tier": "Titanium",
+          "points_balance": 84500,
+          "home_airport_iata": "SFO",
+          "preferred_seat_type": "aisle",
+          "companion_voucher_code": "COMP-2026-99A",
+          "lounge_pass_code": "LNG-TITAN-77",
+          "free_checked_bags": 2,
+          "priority_boarding_group": "Group 1",
+          "annual_travel_credit_usd": 300,
+          "free_return_shipping": true,
+          "extended_warranty_months": 12,
+          "concierge_phone_ext": "8800",
+          "tier_expiration_date": "2027-03-31"
+        }
+      },
+      {
+        "functionName": "search_flights",
+        "arguments": {
+          "origin_iata": "JFK",
+          "destination_iata": "SFO",
+          "departure_date": "2026-11-25"
+        },
+        "mockOutput": {
+          "flights": [
+            {
+              "flight_number": "UA-889",
+              "origin_iata": "JFK",
+              "destination_iata": "SFO",
+              "departure_time_iso": "2026-11-25T17:15:00-05:00",
+              "fare_usd": 435,
+              "cabin_class": "economy"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Chain: Add Official Replacement Power Adapter to Cart (get_product_specs -> update_cart_items)",
+    "category": "multi_step_chaining",
+    "description": "update_cart_items requires sku_code. outputSchema shows that get_product_specs returns replacement_adapter_sku for product_id PROD-10 (whereas without outputSchema the agent searches the catalog).",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Add 1 unit of the official replacement power adapter for product PROD-10 to my cart."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_product_specs",
+        "arguments": {
+          "product_id": "PROD-10"
+        },
+        "mockOutput": {
+          "product_id": "PROD-10",
+          "model_number": "UW-3400-PRO",
+          "warranty_months": 24,
+          "power_watts": 65,
+          "dimensions_cm": "81x36x12",
+          "replacement_adapter_sku": "SKU-PWR-65W",
+          "variants": [
+            {
+              "sku_code": "SKU-MON-34B",
+              "color": "Matte Black",
+              "capacity": "34-inch",
+              "unit_price_usd": 450
+            }
+          ]
+        }
+      },
+      {
+        "functionName": "update_cart_items",
+        "arguments": {
+          "items": [
+            {
+              "sku_code": "SKU-PWR-65W",
+              "quantity": 1
+            }
+          ]
+        },
+        "mockOutput": {
+          "cart_id": "CART-1",
+          "line_items": [
+            {
+              "sku_code": "SKU-PWR-65W",
+              "quantity": 1,
+              "subtotal_usd": 49
+            }
+          ],
+          "cart_total_usd": 49
+        }
+      }
+    ]
+  },
+  {
+    "name": "Multi-Turn: Catalog Search Followed by Replacement Adapter Stock Check (get_product_specs -> check_warehouse_stock)",
+    "category": "multi_turn_conversation",
+    "description": "Turn 1 ran search_catalog and returned product_id PROD-10. Turn 2 asks to check warehouse stock in postal code 94105 for the official replacement power adapter for that monitor; outputSchema shows get_product_specs returns replacement_adapter_sku.",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Search the electronics catalog for 34-inch ultrawide monitors."
+      },
+      {
+        "role": "model",
+        "type": "functioncall",
+        "name": "search_catalog",
+        "arguments": {
+          "query": "34-inch ultrawide monitor",
+          "category": "electronics"
+        }
+      },
+      {
+        "role": "user",
+        "type": "functionresponse",
+        "name": "search_catalog",
+        "response": {
+          "result": {
+            "items": [
+              {
+                "product_id": "PROD-10",
+                "name": "ProView 34 Ultrawide",
+                "brand": "ProView",
+                "base_price_usd": 450,
+                "rating_avg": 4.6
+              }
+            ],
+            "page_size": 12,
+            "total_count": 1,
+            "total_pages": 1
+          }
+        }
+      },
+      {
+        "role": "model",
+        "type": "message",
+        "content": "I found the ProView 34 Ultrawide monitor (PROD-10) for $450."
+      },
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Check if the official replacement power adapter for that monitor is in stock near postal code 94105."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "get_product_specs",
+        "arguments": {
+          "product_id": "PROD-10"
+        },
+        "mockOutput": {
+          "product_id": "PROD-10",
+          "model_number": "UW-3400-PRO",
+          "warranty_months": 24,
+          "power_watts": 65,
+          "dimensions_cm": "81x36x12",
+          "replacement_adapter_sku": "SKU-PWR-65W",
+          "variants": [
+            {
+              "sku_code": "SKU-MON-34B",
+              "color": "Matte Black",
+              "capacity": "34-inch",
+              "unit_price_usd": 450
+            }
+          ]
+        }
+      },
+      {
+        "functionName": "check_warehouse_stock",
+        "arguments": {
+          "sku_code": "SKU-PWR-65W",
+          "postal_code": "94105"
+        },
+        "mockOutput": {
+          "sku_code": "SKU-PWR-65W",
+          "in_stock": true,
+          "available_units": 12,
+          "warehouse_bin_id": "BIN-SFO-P04",
+          "earliest_pickup_window": "Today 14:00-18:00"
+        }
+      }
+    ]
+  }
+]

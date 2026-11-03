@@ -1,0 +1,1095 @@
+{
+  "tools": [
+    {
+      "name": "search_catalog",
+      "description": "Finds products in the store catalog. Use when browsing available merchandise, comparing starting prices, or looking up items by title or brand.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Product name, brand, or search phrase as the user stated it"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["electronics", "home_office", "accessories", "appliances"],
+            "description": "Optional department filter"
+          },
+          "max_price": {
+            "type": "number",
+            "description": "Optional maximum price filter in USD"
+          },
+          "page": {
+            "type": "number",
+            "description": "1-based page number for paginated results"
+          }
+        },
+        "required": ["query"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "High-level catalog listings matching the search",
+            "items": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Catalog product identifier (e.g. PROD-10)"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Display title of the product"
+                },
+                "brand": {
+                  "type": "string",
+                  "description": "Manufacturer brand name"
+                },
+                "base_price_usd": {
+                  "type": "number",
+                  "description": "Starting price in USD"
+                },
+                "rating_avg": {
+                  "type": "number",
+                  "description": "Average customer star rating from 1 to 5"
+                }
+              },
+              "required": ["product_id", "name", "brand", "base_price_usd", "rating_avg"]
+            }
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Maximum items returned per page"
+          },
+          "total_count": {
+            "type": "number",
+            "description": "Total matching products across all pages"
+          },
+          "total_pages": {
+            "type": "number",
+            "description": "Total number of available result pages"
+          }
+        },
+        "required": ["items", "page_size", "total_count", "total_pages"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_product_specs",
+      "description": "Retrieves detailed technical specifications and hardware configuration data for a catalog item. Use when checking physical dimensions, electrical ratings, or manufacturer hardware details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "Catalog product identifier (e.g. PROD-10)"
+          }
+        },
+        "required": ["product_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "Catalog product identifier"
+          },
+          "model_number": {
+            "type": "string",
+            "description": "Manufacturer hardware model code"
+          },
+          "warranty_months": {
+            "type": "number",
+            "description": "Standard manufacturer warranty duration in months"
+          },
+          "power_watts": {
+            "type": "number",
+            "description": "Rated electrical power draw in watts"
+          },
+          "dimensions_cm": {
+            "type": "string",
+            "description": "Physical dimensions formatted as WxHxD in centimeters"
+          },
+          "replacement_adapter_sku": {
+            "type": "string",
+            "description": "Orderable SKU code for the official replacement power adapter"
+          },
+          "variants": {
+            "type": "array",
+            "description": "Orderable product variants with their SKU codes",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku_code": {
+                  "type": "string",
+                  "description": "Variant SKU code required for stock checks and cart actions"
+                },
+                "color": {
+                  "type": "string",
+                  "description": "Finish or color name"
+                },
+                "capacity": {
+                  "type": "string",
+                  "description": "Size or storage configuration"
+                },
+                "unit_price_usd": {
+                  "type": "number",
+                  "description": "Price for this specific variant in USD"
+                }
+              },
+              "required": ["sku_code", "color", "unit_price_usd"]
+            }
+          }
+        },
+        "required": [
+          "product_id",
+          "model_number",
+          "warranty_months",
+          "replacement_adapter_sku",
+          "variants"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "check_warehouse_stock",
+      "description": "Checks real-time fulfillment inventory and local store availability for a variant. Use when verifying stock counts, restock dates, or pickup readiness.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code (e.g. SKU-MON-34B)"
+          },
+          "postal_code": {
+            "type": "string",
+            "description": "Optional postal code to check nearby pickup availability"
+          }
+        },
+        "required": ["sku_code"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code checked"
+          },
+          "in_stock": {
+            "type": "boolean",
+            "description": "Whether units are currently available to fulfill"
+          },
+          "available_units": {
+            "type": "number",
+            "description": "Quantity currently on hand"
+          },
+          "warehouse_bin_id": {
+            "type": "string",
+            "description": "Fulfillment bin allocation identifier required to place a pickup hold"
+          },
+          "earliest_pickup_window": {
+            "type": "string",
+            "description": "Earliest local pickup window if in stock"
+          },
+          "restock_eta_date": {
+            "type": "string",
+            "description": "Estimated restock date (YYYY-MM-DD) when out of stock"
+          }
+        },
+        "required": ["sku_code", "in_stock", "available_units", "warehouse_bin_id"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "list_product_reviews",
+      "description": "Lists customer-submitted reviews and feedback for a catalog product. Use when the user asks what buyers say about real-world quality, defects, or usability.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "Catalog product identifier (e.g. PROD-10)"
+          },
+          "rating_filter": {
+            "type": "string",
+            "enum": ["all", "positive", "critical"],
+            "description": "Optional sentiment filter for reviews"
+          },
+          "page": {
+            "type": "number",
+            "description": "1-based page number"
+          }
+        },
+        "required": ["product_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "description": "Customer review entries",
+            "items": {
+              "type": "object",
+              "properties": {
+                "review_id": {
+                  "type": "string",
+                  "description": "Unique review identifier"
+                },
+                "author_display_name": {
+                  "type": "string",
+                  "description": "Public display name of the reviewer"
+                },
+                "rating": {
+                  "type": "number",
+                  "description": "Star rating from 1 to 5"
+                },
+                "verified_purchase": {
+                  "type": "boolean",
+                  "description": "Whether the reviewer bought the item from this store"
+                },
+                "defect_tags": {
+                  "type": "array",
+                  "description": "Reported issue tags mentioned by the customer",
+                  "items": { "type": "string" }
+                },
+                "comment_text": {
+                  "type": "string",
+                  "description": "User-authored review body"
+                }
+              },
+              "required": ["review_id", "rating", "verified_purchase", "comment_text"]
+            }
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Maximum reviews returned per page"
+          },
+          "total_count": {
+            "type": "number",
+            "description": "Total reviews matching the filter"
+          },
+          "total_pages": {
+            "type": "number",
+            "description": "Total number of available review pages"
+          }
+        },
+        "required": ["reviews", "page_size", "total_count", "total_pages"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": true
+      }
+    },
+    {
+      "name": "update_cart_items",
+      "description": "Modifies the active shopping cart contents. Use when the user wants to add product variants to their cart, change how many they are buying, or remove selections.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of variant SKU quantities to set in the cart",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku_code": {
+                  "type": "string",
+                  "description": "Orderable variant SKU code"
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Target quantity (0 to remove)"
+                }
+              },
+              "required": ["sku_code", "quantity"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cart_id": {
+            "type": "string",
+            "description": "Active shopping cart identifier"
+          },
+          "line_items": {
+            "type": "array",
+            "description": "Updated cart line items",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku_code": {
+                  "type": "string",
+                  "description": "Variant SKU code in the cart"
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Updated unit quantity"
+                },
+                "subtotal_usd": {
+                  "type": "number",
+                  "description": "Line item subtotal in USD"
+                }
+              },
+              "required": ["sku_code", "quantity", "subtotal_usd"]
+            }
+          },
+          "cart_total_usd": {
+            "type": "number",
+            "description": "Updated cart subtotal in USD"
+          }
+        },
+        "required": ["cart_id", "line_items", "cart_total_usd"]
+      }
+    },
+    {
+      "name": "reserve_store_pickup",
+      "description": "Places a temporary local pickup hold on an in-stock item. Use when the user wants to reserve available inventory for in-store collection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code to reserve"
+          },
+          "warehouse_bin_id": {
+            "type": "string",
+            "description": "Fulfillment bin allocation identifier for the item"
+          },
+          "pickup_contact_name": {
+            "type": "string",
+            "description": "Full name of the person collecting the order"
+          }
+        },
+        "required": ["sku_code", "warehouse_bin_id", "pickup_contact_name"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "reservation_id": {
+            "type": "string",
+            "description": "Unique pickup reservation identifier"
+          },
+          "pickup_code": {
+            "type": "string",
+            "description": "6-character counter check-in code"
+          },
+          "expires_at_iso": {
+            "type": "string",
+            "description": "Hold expiration timestamp in ISO 8601 format"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["reserved", "expired", "unavailable"],
+            "description": "Current status of the pickup hold"
+          }
+        },
+        "required": ["reservation_id", "pickup_code", "expires_at_iso", "status"]
+      }
+    },
+    {
+      "name": "list_customer_orders",
+      "description": "Lists orders placed on the customer's account. Use when browsing order history or looking up an order by date or fulfillment stage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status_filter": {
+            "type": "string",
+            "enum": ["all", "processing", "shipped", "delivered", "returned"],
+            "description": "Optional order lifecycle filter"
+          },
+          "page": {
+            "type": "number",
+            "description": "1-based page number"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "description": "Summary records of customer orders",
+            "items": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "type": "string",
+                  "description": "Unique order identifier (e.g. ORD-501)"
+                },
+                "placed_date": {
+                  "type": "string",
+                  "description": "Order placement date (YYYY-MM-DD)"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["processing", "shipped", "delivered", "returned"],
+                  "description": "Current order lifecycle state"
+                },
+                "total_paid_usd": {
+                  "type": "number",
+                  "description": "Total order amount paid in USD"
+                },
+                "item_titles": {
+                  "type": "array",
+                  "description": "Display names of products in the order",
+                  "items": { "type": "string" }
+                }
+              },
+              "required": ["order_id", "placed_date", "status", "total_paid_usd", "item_titles"]
+            }
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Maximum orders returned per page"
+          },
+          "total_count": {
+            "type": "number",
+            "description": "Total matching orders"
+          },
+          "total_pages": {
+            "type": "number",
+            "description": "Total number of available order pages"
+          }
+        },
+        "required": ["orders", "page_size", "total_count", "total_pages"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_shipment_tracking",
+      "description": "Fetches carrier logistics and package delivery details for an order. Use when checking package progress, delivery confirmation, or transit handling.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          }
+        },
+        "required": ["order_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier"
+          },
+          "shipment_id": {
+            "type": "string",
+            "description": "Carrier shipment dispatch identifier required for return labels"
+          },
+          "carrier_name": {
+            "type": "string",
+            "description": "Shipping carrier name"
+          },
+          "tracking_number": {
+            "type": "string",
+            "description": "Carrier tracking code"
+          },
+          "delivery_window": {
+            "type": "string",
+            "description": "Scheduled or actual delivery window"
+          },
+          "customs_clearance_status": {
+            "type": "string",
+            "enum": ["not_applicable", "pending_inspection", "cleared", "held_for_duty"],
+            "description": "International customs status for the shipment"
+          },
+          "package_weight_kg": {
+            "type": "number",
+            "description": "Total parcel weight in kilograms"
+          },
+          "signed_by": {
+            "type": "string",
+            "description": "Name of the recipient who signed upon delivery"
+          }
+        },
+        "required": [
+          "order_id",
+          "shipment_id",
+          "carrier_name",
+          "tracking_number",
+          "customs_clearance_status"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_order_invoice",
+      "description": "Retrieves the billing receipt and itemized fulfillment record for an order. Use when inspecting charges, tax breakdowns, or purchased unit records.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          }
+        },
+        "required": ["order_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier"
+          },
+          "invoice_id": {
+            "type": "string",
+            "description": "Accounting invoice identifier"
+          },
+          "payment_ledger_token": {
+            "type": "string",
+            "description": "Settlement ledger token required when submitting a refund payout"
+          },
+          "subtotal_usd": {
+            "type": "number",
+            "description": "Pre-tax merchandise subtotal in USD"
+          },
+          "tax_usd": {
+            "type": "number",
+            "description": "Sales tax charged in USD"
+          },
+          "import_duty_usd": {
+            "type": "number",
+            "description": "Import tariff and customs duty charged in USD"
+          },
+          "discount_usd": {
+            "type": "number",
+            "description": "Promotional discount applied in USD"
+          },
+          "billed_items": {
+            "type": "array",
+            "description": "Itemized units fulfilled on this invoice",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku_code": {
+                  "type": "string",
+                  "description": "Fulfilled variant SKU code"
+                },
+                "serial_number": {
+                  "type": "string",
+                  "description": "Hardware serial number assigned to the fulfilled unit"
+                },
+                "unit_price_usd": {
+                  "type": "number",
+                  "description": "Billed unit price in USD"
+                },
+                "return_window_closes_date": {
+                  "type": "string",
+                  "description": "Last eligible date (YYYY-MM-DD) to initiate a return"
+                },
+                "return_eligibility_token": {
+                  "type": "string",
+                  "description": "Return authorization token required to generate a prepaid return label"
+                }
+              },
+              "required": [
+                "sku_code",
+                "serial_number",
+                "unit_price_usd",
+                "return_window_closes_date",
+                "return_eligibility_token"
+              ]
+            }
+          }
+        },
+        "required": [
+          "order_id",
+          "invoice_id",
+          "payment_ledger_token",
+          "subtotal_usd",
+          "tax_usd",
+          "import_duty_usd",
+          "billed_items"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "initiate_return_label",
+      "description": "Opens the return shipping wizard to generate a prepaid carrier label for a delivered package. Use when the user wants to send an order back to the warehouse.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          },
+          "return_eligibility_token": {
+            "type": "string",
+            "description": "Return authorization token for the fulfilled order item"
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["defective", "wrong_item", "changed_mind", "arrived_late"],
+            "description": "Reason for returning the shipment"
+          }
+        },
+        "required": ["order_id", "return_eligibility_token", "reason"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["requires_user_action", "ready"],
+            "description": "Hand-off status of the return wizard"
+          },
+          "return_rma_code": {
+            "type": "string",
+            "description": "Return merchandise authorization code"
+          },
+          "dropoff_deadline_date": {
+            "type": "string",
+            "description": "Date by which the package must be handed to the carrier"
+          }
+        },
+        "required": ["status", "return_rma_code", "dropoff_deadline_date"]
+      }
+    },
+    {
+      "name": "submit_refund_request",
+      "description": "Submits a financial refund payout back to the customer's payment method. Use when issuing a monetary credit for an eligible order.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          },
+          "payment_ledger_token": {
+            "type": "string",
+            "description": "Settlement ledger token authorizing the refund payout"
+          },
+          "refund_amount_usd": {
+            "type": "number",
+            "description": "Dollar amount in USD to refund"
+          }
+        },
+        "required": ["order_id", "payment_ledger_token", "refund_amount_usd"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "refund_transaction_id": {
+            "type": "string",
+            "description": "Processed refund transaction identifier"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["processed", "pending_review", "declined"],
+            "description": "Settlement status of the refund request"
+          },
+          "credited_amount_usd": {
+            "type": "number",
+            "description": "Amount credited back in USD"
+          },
+          "estimated_posting_days": {
+            "type": "number",
+            "description": "Business days until funds appear on statement"
+          }
+        },
+        "required": ["refund_transaction_id", "status", "credited_amount_usd"]
+      },
+      "annotations": {
+        "consequentialHint": true
+      }
+    },
+    {
+      "name": "initiate_warranty_repair",
+      "description": "Opens the manufacturer repair claim workflow for a malfunctioning hardware unit. Use when the user reports a hardware defect and wants warranty service.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "serial_number": {
+            "type": "string",
+            "description": "Hardware serial number of the defective unit"
+          },
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code of the defective unit"
+          },
+          "issue_summary": {
+            "type": "string",
+            "description": "Brief description of the hardware fault reported by the user"
+          }
+        },
+        "required": ["serial_number", "sku_code", "issue_summary"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["requires_user_action", "submitted"],
+            "description": "Hand-off status of the warranty repair form"
+          },
+          "claim_draft_id": {
+            "type": "string",
+            "description": "Draft warranty repair claim identifier"
+          },
+          "service_center_city": {
+            "type": "string",
+            "description": "Assigned regional repair depot city"
+          }
+        },
+        "required": ["status", "claim_draft_id", "service_center_city"]
+      }
+    },
+    {
+      "name": "get_user_preferences",
+      "description": "Retrieves the signed-in user's saved personal preferences and default profile settings. Use when personalizing searches or pre-filling actions with the user's usual defaults.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "default_postal_code": {
+            "type": "string",
+            "description": "Default shipping and local store lookup postal code"
+          },
+          "pickup_contact_name": {
+            "type": "string",
+            "description": "Default authorized recipient name for local store pickups"
+          },
+          "preferred_currency": {
+            "type": "string",
+            "description": "Three-letter ISO currency code for displaying prices"
+          },
+          "language_locale": {
+            "type": "string",
+            "description": "Preferred interface language and regional locale tag"
+          },
+          "time_zone_iana": {
+            "type": "string",
+            "description": "User's local IANA time zone identifier"
+          },
+          "notification_channel": {
+            "type": "string",
+            "description": "Preferred channel for order and flight alerts (sms, email, push)"
+          },
+          "saved_shirt_size": {
+            "type": "string",
+            "description": "Saved apparel top size for merchandise searches"
+          },
+          "saved_monitor_vesa_mm": {
+            "type": "string",
+            "description": "Saved desk mount VESA pattern in millimeters (e.g. 100x100)"
+          },
+          "auto_apply_coupons": {
+            "type": "boolean",
+            "description": "Whether eligible promotional codes apply automatically"
+          },
+          "accessibility_mode": {
+            "type": "string",
+            "description": "Saved accessibility accommodation setting"
+          },
+          "theme_appearance": {
+            "type": "string",
+            "description": "Saved visual theme mode (light, dark, system)"
+          }
+        },
+        "required": [
+          "default_postal_code",
+          "pickup_contact_name",
+          "preferred_currency",
+          "saved_monitor_vesa_mm"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_loyalty_benefits",
+      "description": "Retrieves the customer's rewards program tier, point balance, and active membership perks. Use when checking reward entitlements, upgrade certificates, or member vouchers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "membership_tier": {
+            "type": "string",
+            "description": "Current loyalty program tier name"
+          },
+          "points_balance": {
+            "type": "number",
+            "description": "Available redeemable reward points balance"
+          },
+          "home_airport_iata": {
+            "type": "string",
+            "description": "Preferred home departure or arrival airport 3-letter IATA code"
+          },
+          "preferred_seat_type": {
+            "type": "string",
+            "description": "Saved aircraft seating preference such as aisle or window"
+          },
+          "companion_voucher_code": {
+            "type": "string",
+            "description": "Active companion airfare voucher code for flight bookings"
+          },
+          "lounge_pass_code": {
+            "type": "string",
+            "description": "Active airport lounge access pass identifier"
+          },
+          "free_checked_bags": {
+            "type": "number",
+            "description": "Number of complimentary checked bags included with tier"
+          },
+          "priority_boarding_group": {
+            "type": "string",
+            "description": "Assigned priority airline boarding group"
+          },
+          "annual_travel_credit_usd": {
+            "type": "number",
+            "description": "Remaining annual travel statement credit in USD"
+          },
+          "free_return_shipping": {
+            "type": "boolean",
+            "description": "Whether tier includes free return shipping on merchandise"
+          },
+          "extended_warranty_months": {
+            "type": "number",
+            "description": "Bonus warranty coverage months added to hardware purchases"
+          },
+          "concierge_phone_ext": {
+            "type": "string",
+            "description": "Dedicated member support extension number"
+          },
+          "tier_expiration_date": {
+            "type": "string",
+            "description": "Date current loyalty tier status expires (YYYY-MM-DD)"
+          }
+        },
+        "required": [
+          "membership_tier",
+          "points_balance",
+          "home_airport_iata",
+          "companion_voucher_code",
+          "free_checked_bags",
+          "extended_warranty_months"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_corporate_policy",
+      "description": "Retrieves the organization's employee procurement rules, travel caps, and billing identifiers. Use when checking company expense limits, compliance rules, or department billing codes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cost_center_code": {
+            "type": "string",
+            "description": "Department accounting cost center code required for bookings"
+          },
+          "max_flight_fare_usd": {
+            "type": "number",
+            "description": "Maximum policy-compliant airfare in USD"
+          },
+          "approved_cabin_class": {
+            "type": "string",
+            "enum": ["economy", "premium_economy", "business", "first"],
+            "description": "Highest cabin class permitted under company travel policy"
+          },
+          "preferred_airline_iata": {
+            "type": "string",
+            "description": "Company-negotiated preferred airline 2-letter carrier code"
+          },
+          "max_hotel_nightly_usd": {
+            "type": "number",
+            "description": "Maximum reimbursable nightly hotel rate in USD"
+          },
+          "daily_per_diem_usd": {
+            "type": "number",
+            "description": "Daily meal and incidental expense allowance in USD"
+          },
+          "hardware_stipend_usd": {
+            "type": "number",
+            "description": "Remaining remote workspace equipment allowance in USD"
+          },
+          "tax_exempt_cert_id": {
+            "type": "string",
+            "description": "Corporate state sales tax exemption certificate identifier"
+          },
+          "approver_manager_email": {
+            "type": "string",
+            "description": "Email address of the manager assigned to approve exceptions"
+          },
+          "require_refundable_ticket": {
+            "type": "boolean",
+            "description": "Whether company policy mandates refundable airfare tickets"
+          },
+          "advance_booking_days_min": {
+            "type": "number",
+            "description": "Minimum days in advance flights should be booked"
+          }
+        },
+        "required": [
+          "cost_center_code",
+          "max_flight_fare_usd",
+          "approved_cabin_class",
+          "tax_exempt_cert_id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "search_flights",
+      "description": "Searches available commercial flights between two airports for a travel date. Use when looking up flight schedules, seat availability, or airfare options.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "origin_iata": {
+            "type": "string",
+            "description": "3-letter IATA airport code for the departure city (e.g. SFO)"
+          },
+          "destination_iata": {
+            "type": "string",
+            "description": "3-letter IATA airport code for the arrival city (e.g. JFK)"
+          },
+          "departure_date": {
+            "type": "string",
+            "description": "Outbound travel date formatted as YYYY-MM-DD"
+          },
+          "cabin_class": {
+            "type": "string",
+            "enum": ["economy", "premium_economy", "business", "first"],
+            "description": "Optional cabin class filter"
+          },
+          "max_fare_usd": {
+            "type": "number",
+            "description": "Optional maximum ticket price in USD"
+          }
+        },
+        "required": ["origin_iata", "destination_iata", "departure_date"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "flights": {
+            "type": "array",
+            "description": "Available flight itineraries matching the search criteria",
+            "items": {
+              "type": "object",
+              "properties": {
+                "flight_number": {
+                  "type": "string",
+                  "description": "Carrier flight number (e.g. UA-882)"
+                },
+                "origin_iata": {
+                  "type": "string",
+                  "description": "Departure airport 3-letter IATA code"
+                },
+                "destination_iata": {
+                  "type": "string",
+                  "description": "Arrival airport 3-letter IATA code"
+                },
+                "departure_time_iso": {
+                  "type": "string",
+                  "description": "Scheduled departure timestamp in ISO 8601 format"
+                },
+                "fare_usd": {
+                  "type": "number",
+                  "description": "Ticket price in USD"
+                },
+                "cabin_class": {
+                  "type": "string",
+                  "description": "Ticket cabin class"
+                }
+              },
+              "required": [
+                "flight_number",
+                "origin_iata",
+                "destination_iata",
+                "departure_time_iso",
+                "fare_usd",
+                "cabin_class"
+              ]
+            }
+          }
+        },
+        "required": ["flights"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "initiate_flight_booking",
+      "description": "Opens the flight reservation checkout flow for a selected itinerary. Use when the user wants to book a specific flight with their billing or voucher details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "flight_number": {
+            "type": "string",
+            "description": "Selected carrier flight number (e.g. UA-882)"
+          },
+          "departure_date": {
+            "type": "string",
+            "description": "Scheduled departure date formatted as YYYY-MM-DD"
+          },
+          "cost_center_code": {
+            "type": "string",
+            "description": "Optional department cost center code for corporate billing"
+          },
+          "companion_voucher_code": {
+            "type": "string",
+            "description": "Optional companion airfare voucher code to apply"
+          }
+        },
+        "required": ["flight_number", "departure_date"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["requires_user_action", "ready"],
+            "description": "Hand-off status of the flight booking checkout form"
+          },
+          "booking_draft_id": {
+            "type": "string",
+            "description": "Temporary itinerary reservation draft identifier"
+          },
+          "hold_expires_iso": {
+            "type": "string",
+            "description": "Timestamp when the fare hold expires in ISO 8601 format"
+          }
+        },
+        "required": ["status", "booking_draft_id", "hold_expires_iso"]
+      }
+    }
+  ]
+}

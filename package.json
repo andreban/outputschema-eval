@@ -1,0 +1,24 @@
+{
+  "name": "outputschema-eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Andre Cipriani Bandarra",
+  "description": "TypeScript evaluation suite measuring the impact of WebMCP outputSchema on agent tool selection and parameter accuracy across single-turn and multi-turn conversations.",
+  "scripts": {
+    "build": "tsc",
+    "eval:without-output": "npm run build && node dist/cli.js -t schemas/schema-without-output.json -e evals/evals.json -o .evals/without-output",
+    "eval:with-output": "npm run build && node dist/cli.js -t schemas/schema-with-output.json -e evals/evals.json -o .evals/with-output",
+    "eval:compare": "npm run build && node dist/compare.js",
+    "test": "npm run build && node --test dist/test/*.test.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.8.2"
+  }
+}

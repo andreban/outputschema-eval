@@ -1,0 +1,367 @@
+{
+  "tools": [
+    {
+      "name": "search_catalog",
+      "description": "Finds products in the store catalog. Use when browsing available merchandise, comparing starting prices, or looking up items by title or brand.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Product name, brand, or search phrase as the user stated it"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["electronics", "home_office", "accessories", "appliances"],
+            "description": "Optional department filter"
+          },
+          "max_price": {
+            "type": "number",
+            "description": "Optional maximum price filter in USD"
+          },
+          "page": {
+            "type": "number",
+            "description": "1-based page number for paginated results"
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_product_specs",
+      "description": "Retrieves detailed technical specifications and hardware configuration data for a catalog item. Use when checking physical dimensions, electrical ratings, or manufacturer hardware details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "Catalog product identifier (e.g. PROD-10)"
+          }
+        },
+        "required": ["product_id"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "check_warehouse_stock",
+      "description": "Checks real-time fulfillment inventory and local store availability for a variant. Use when verifying stock counts, restock dates, or pickup readiness.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code (e.g. SKU-MON-34B)"
+          },
+          "postal_code": {
+            "type": "string",
+            "description": "Optional postal code to check nearby pickup availability"
+          }
+        },
+        "required": ["sku_code"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "list_product_reviews",
+      "description": "Lists customer-submitted reviews and feedback for a catalog product. Use when the user asks what buyers say about real-world quality, defects, or usability.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "Catalog product identifier (e.g. PROD-10)"
+          },
+          "rating_filter": {
+            "type": "string",
+            "enum": ["all", "positive", "critical"],
+            "description": "Optional sentiment filter for reviews"
+          },
+          "page": {
+            "type": "number",
+            "description": "1-based page number"
+          }
+        },
+        "required": ["product_id"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": true
+      }
+    },
+    {
+      "name": "update_cart_items",
+      "description": "Modifies the active shopping cart contents. Use when the user wants to add product variants to their cart, change how many they are buying, or remove selections.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of variant SKU quantities to set in the cart",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku_code": {
+                  "type": "string",
+                  "description": "Orderable variant SKU code"
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Target quantity (0 to remove)"
+                }
+              },
+              "required": ["sku_code", "quantity"]
+            }
+          }
+        },
+        "required": ["items"]
+      }
+    },
+    {
+      "name": "reserve_store_pickup",
+      "description": "Places a temporary local pickup hold on an in-stock item. Use when the user wants to reserve available inventory for in-store collection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code to reserve"
+          },
+          "warehouse_bin_id": {
+            "type": "string",
+            "description": "Fulfillment bin allocation identifier for the item"
+          },
+          "pickup_contact_name": {
+            "type": "string",
+            "description": "Full name of the person collecting the order"
+          }
+        },
+        "required": ["sku_code", "warehouse_bin_id", "pickup_contact_name"]
+      }
+    },
+    {
+      "name": "list_customer_orders",
+      "description": "Lists orders placed on the customer's account. Use when browsing order history or looking up an order by date or fulfillment stage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status_filter": {
+            "type": "string",
+            "enum": ["all", "processing", "shipped", "delivered", "returned"],
+            "description": "Optional order lifecycle filter"
+          },
+          "page": {
+            "type": "number",
+            "description": "1-based page number"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_shipment_tracking",
+      "description": "Fetches carrier logistics and package delivery details for an order. Use when checking package progress, delivery confirmation, or transit handling.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          }
+        },
+        "required": ["order_id"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_order_invoice",
+      "description": "Retrieves the billing receipt and itemized fulfillment record for an order. Use when inspecting charges, tax breakdowns, or purchased unit records.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          }
+        },
+        "required": ["order_id"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "initiate_return_label",
+      "description": "Opens the return shipping wizard to generate a prepaid carrier label for a delivered package. Use when the user wants to send an order back to the warehouse.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          },
+          "return_eligibility_token": {
+            "type": "string",
+            "description": "Return authorization token for the fulfilled order item"
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["defective", "wrong_item", "changed_mind", "arrived_late"],
+            "description": "Reason for returning the shipment"
+          }
+        },
+        "required": ["order_id", "return_eligibility_token", "reason"]
+      }
+    },
+    {
+      "name": "submit_refund_request",
+      "description": "Submits a financial refund payout back to the customer's payment method. Use when issuing a monetary credit for an eligible order.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order identifier (e.g. ORD-501)"
+          },
+          "payment_ledger_token": {
+            "type": "string",
+            "description": "Settlement ledger token authorizing the refund payout"
+          },
+          "refund_amount_usd": {
+            "type": "number",
+            "description": "Dollar amount in USD to refund"
+          }
+        },
+        "required": ["order_id", "payment_ledger_token", "refund_amount_usd"]
+      },
+      "annotations": {
+        "consequentialHint": true
+      }
+    },
+    {
+      "name": "initiate_warranty_repair",
+      "description": "Opens the manufacturer repair claim workflow for a malfunctioning hardware unit. Use when the user reports a hardware defect and wants warranty service.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "serial_number": {
+            "type": "string",
+            "description": "Hardware serial number of the defective unit"
+          },
+          "sku_code": {
+            "type": "string",
+            "description": "Variant SKU code of the defective unit"
+          },
+          "issue_summary": {
+            "type": "string",
+            "description": "Brief description of the hardware fault reported by the user"
+          }
+        },
+        "required": ["serial_number", "sku_code", "issue_summary"]
+      }
+    },
+    {
+      "name": "get_user_preferences",
+      "description": "Retrieves the signed-in user's saved personal preferences and default profile settings. Use when personalizing searches or pre-filling actions with the user's usual defaults.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_loyalty_benefits",
+      "description": "Retrieves the customer's rewards program tier, point balance, and active membership perks. Use when checking reward entitlements, upgrade certificates, or member vouchers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_corporate_policy",
+      "description": "Retrieves the organization's employee procurement rules, travel caps, and billing identifiers. Use when checking company expense limits, compliance rules, or department billing codes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "search_flights",
+      "description": "Searches available commercial flights between two airports for a travel date. Use when looking up flight schedules, seat availability, or airfare options.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "origin_iata": {
+            "type": "string",
+            "description": "3-letter IATA airport code for the departure city (e.g. SFO)"
+          },
+          "destination_iata": {
+            "type": "string",
+            "description": "3-letter IATA airport code for the arrival city (e.g. JFK)"
+          },
+          "departure_date": {
+            "type": "string",
+            "description": "Outbound travel date formatted as YYYY-MM-DD"
+          },
+          "cabin_class": {
+            "type": "string",
+            "enum": ["economy", "premium_economy", "business", "first"],
+            "description": "Optional cabin class filter"
+          },
+          "max_fare_usd": {
+            "type": "number",
+            "description": "Optional maximum ticket price in USD"
+          }
+        },
+        "required": ["origin_iata", "destination_iata", "departure_date"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "initiate_flight_booking",
+      "description": "Opens the flight reservation checkout flow for a selected itinerary. Use when the user wants to book a specific flight with their billing or voucher details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "flight_number": {
+            "type": "string",
+            "description": "Selected carrier flight number (e.g. UA-882)"
+          },
+          "departure_date": {
+            "type": "string",
+            "description": "Scheduled departure date formatted as YYYY-MM-DD"
+          },
+          "cost_center_code": {
+            "type": "string",
+            "description": "Optional department cost center code for corporate billing"
+          },
+          "companion_voucher_code": {
+            "type": "string",
+            "description": "Optional companion airfare voucher code to apply"
+          }
+        },
+        "required": ["flight_number", "departure_date"]
+      }
+    }
+  ]
+}
